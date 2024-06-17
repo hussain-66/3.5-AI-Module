@@ -169,11 +169,27 @@
             if (userInput.trim() === "") return;  // Don't send empty messages
             appendMessage('user', userInput); // Display user message in chat
 
-            // Simulate ChatGPT response for demonstration purposes
-            setTimeout(() => {
-                const simulatedResponse = "This is a simulated response from ChatGPT.";
-                appendMessage('bot', simulatedResponse); // Display ChatGPT response in chat
-            }, 1000);
+            // Request to ChatGPT API (simulated response for now)
+            fetch('https://api.openai.com/v1/engines/text-davinci-003/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                },
+                body: JSON.stringify({
+                    prompt: userInput,
+                    max_tokens: 150
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botResponse = data.choices[0].text.trim();
+                appendMessage('bot', botResponse); // Display ChatGPT response in chat
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                appendMessage('bot', 'Sorry, there was an error. Please try again.'); // Display error message
+            });
 
             // Clear input field after sending message
             document.getElementById('user-input').value = '';
