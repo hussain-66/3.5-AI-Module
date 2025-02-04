@@ -3,214 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced ChatGPT-like Website</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .chat-container {
-            width: 100%;
-            height: 100%;
-            background-color: #2c2c2c;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-header {
-            padding: 16px;
-            background-color: #3b3b3b;
-            border-bottom: 1px solid #444;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            color: #fff;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-        }
-
-        .chat-box {
-            padding: 20px;
-            flex-grow: 1;
-            overflow-y: auto;
-            background-color: #2c2c2c;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .input-container {
-            display: flex;
-            align-items: center;
-            justify-content: center; /* Center horizontally */
-            padding: 10px;
-            background-color: transparent;
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .message-input-container {
-            display: flex;
-            align-items: center;
-            background-color: #3b3b3b;
-            border-radius: 20px;
-            padding: 6px; /* Adjusted padding */
-            width: calc(100% - 20px); /* Adjusted width */
-            max-width: 600px; /* Added max-width to limit width */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .message-input {
-            border: none;
-            outline: none;
-            flex-grow: 1;
-            font-size: 14px; /* Reduced font size */
-            background-color: transparent;
-            color: #e0e0e0;
-            padding: 6px;
-            border-radius: 20px; /* Match border radius */
-        }
-
-        .send-button {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #007bff;
-            border-radius: 50%;
-            width: 32px; /* Reduced width */
-            height: 32px; /* Reduced height */
-            margin-left: 8px; /* Added margin for spacing */
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .send-button:hover {
-            background-color: #0056b3;
-        }
-
-        .send-button svg {
-            fill: #fff;
-            width: 20px; /* Reduced size */
-            height: 20px; /* Reduced size */
-        }
-
-        .message {
-            margin-bottom: 10px;
-            padding: 8px 12px; /* Adjusted padding */
-            border-radius: 20px;
-            max-width: 70%;
-            word-wrap: break-word;
-            display: inline-block;
-            font-size: 14px;
-        }
-
-        .user-message {
-            background-color: #007bff;
-            color: #fff;
-            align-self: flex-end;
-            text-align: right;
-        }
-
-        .bot-message {
-            background-color: #555;
-            color: #e0e0e0;
-            align-self: flex-start;
-            text-align: left;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #3b3b3b;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #555;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #007bff;
-        }
-    </style>
+    <title>X Chat</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Splash Screen -->
+    <div class="splash-screen">
+        <h1>X Chat</h1>
+        <p>Developer: Hussain</p>
+    </div>
+
+    <div class="backdrop" id="backdrop"></div>
+
     <div class="chat-container" id="chat-container">
-        <div class="chat-header">Chat with AI 3.5</div>
-        <div class="chat-box" id="chat-box">
-            <!-- This is where chat messages will appear -->
+        <div class="chat-header">
+            <div class="toggle-history" id="toggle-history" onclick="toggleSidebar()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <div class="new-chat-button" onclick="startNewChat()">🌀</div>
         </div>
+
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+
         <div class="input-container" id="input-container">
             <div class="message-input-container">
-                <input type="text" class="message-input" id="user-input" placeholder="Type your message..." onfocus="moveInputUp()" onblur="moveInputDown()" onkeydown="if(event.key === 'Enter') sendMessage()">
+                <input type="text" class="message-input" id="user-input" placeholder="Type your message..." onkeydown="if(event.key === 'Enter') sendMessage()">
                 <div class="send-button" onclick="sendMessage()">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 19V6m0 0l-7 7m7-7l7 7" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
             </div>
         </div>
     </div>
-    <script>
-        function sendMessage() {
-            const userInput = document.getElementById('user-input').value;
-            if (userInput.trim() === "") return;  // Don't send empty messages
-            appendMessage('user', userInput); // Display user message in chat
 
-            // Request to ChatGPT API (simulated response for now)
-            fetch('https://api.openai.com/v1/engines/text-davinci-003/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer OPEN AI APT' // Replace with your OpenAI API key
-                },
-                body: JSON.stringify({
-                    prompt: userInput,
-                    max_tokens: 150
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const botResponse = data.choices[0].text.trim();
-                appendMessage('bot', botResponse); // Display ChatGPT response in chat
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                appendMessage('bot', 'THIS AI MODULE IS UNDER DEVELOPMENT BY HUSSAIN...'); // Display error message
-            });
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            Menu
+            <span class="close-sidebar" onclick="toggleSidebar()">×</span>
+        </div>
 
-            // Clear input field after sending message
-            document.getElementById('user-input').value = '';
-        }
+        <!-- Settings Section -->
+        <div class="collapsible-section">
+            <div class="collapsible-section-header" onclick="toggleSection('settings')">
+                Settings
+                <span id="settings-arrow">▼</span>
+            </div>
+            <div class="collapsible-section-content" id="settings-content">
+                <textarea id="response-editor" placeholder="Edit bot response logic here..."></textarea>
+                <button class="save-response-btn" onclick="saveResponseLogic()">Save Response</button>
+                <div style="margin-top: 20px;">
+                    <button onclick="exportChatHistory()">Export Chat History</button>
+                    <button onclick="importChatHistory()">Import Chat History</button>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button onclick="toggleTheme()">Toggle Theme</button>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button onclick="clearHistory()">Clear History</button>
+                </div>
+            </div>
+        </div>
 
-        function appendMessage(sender, message) {
-            const chatBox = document.getElementById('chat-box');
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-            messageElement.innerText = message;
-            chatBox.appendChild(messageElement);
-            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom of chat box
-        }
+        <!-- History Section -->
+        <div class="collapsible-section">
+            <div class="collapsible-section-header" onclick="toggleSection('history')">
+                History
+                <span id="history-arrow">▼</span>
+            </div>
+            <div class="collapsible-section-content" id="history-content">
+                <div id="history-list">
+                    <!-- Chat history will be displayed here -->
+                </div>
+            </div>
+        </div>
 
-        function moveInputUp() {
-            document.getElementById('input-container').style.bottom = '50px';
-        }
+        <!-- Terms and Conditions -->
+        <div class="terms-and-conditions">
+            <h3>Terms and Conditions</h3>
+            <p>Welcome to X Chat! By using this application, you agree to the following terms:</p>
+            <ul>
+                <li>This is an offline chat application for personal use.</li>
+                <li>No data is stored or transmitted outside your device.</li>
+                <li>The developer is not responsible for any misuse of the application.</li>
+            </ul>
+            <p>Developer: Hussain</p>
+        </div>
+    </div>
 
-        function moveInputDown() {
-            document.getElementById('input-container').style.bottom = '0';
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
