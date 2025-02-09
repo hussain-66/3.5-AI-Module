@@ -1,334 +1,253 @@
-/* General Styles */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.3s ease, color 0.3s ease;
-    overflow-x: hidden; /* Prevent horizontal scrolling */
+// Global variable to track completed quests for level up
+let completedQuestCount = 0;
+
+// Exercise definitions with "counted" property
+const exercises = {
+  pushups: { current: 0, max: 100, expPerUnit: 10, stat: 'strength', counted: false },
+  situps: { current: 0, max: 100, expPerUnit: 10, stat: 'endurance', counted: false },
+  squats: { current: 0, max: 100, expPerUnit: 10, stat: 'strength', counted: false },
+  running: { current: 0, max: 10, expPerUnit: 100, stat: 'agility', counted: false }
+};
+
+// Player data
+const player = {
+  level: 1,
+  exp: 0,
+  maxExp: 1000,
+  skillPoints: 0,
+  stats: {
+    strength: 10,
+    endurance: 10,
+    agility: 10
+  },
+  buffs: []
+};
+
+// Function to add bonus experience
+function addBonusExperience(bonusExp) {
+  player.exp += bonusExp;
+  updateExpDisplay();
+  savePlayerData();
 }
 
-.light-mode {
-    background-color: #f9f9f9;
-    color: #333;
-}
+// Initialize on window load
+window.onload = function() {
+  const savedPlayer = localStorage.getItem('player');
+  if (savedPlayer) {
+    const saved = JSON.parse(savedPlayer);
+    player.level = saved.level || player.level;
+    player.exp = saved.exp || player.exp;
+    player.maxExp = saved.maxExp || player.maxExp;
+    player.skillPoints = saved.skillPoints || player.skillPoints;
+    player.stats = saved.stats || player.stats;
+    player.buffs = saved.buffs || player.buffs;
+    
+    // Update UI with saved data
+    document.getElementById('level').textContent = player.level;
+    document.getElementById('current-exp').textContent = Math.floor(player.exp);
+    document.getElementById('max-exp').textContent = player.maxExp;
+    document.getElementById('strength').textContent = Math.floor(player.stats.strength);
+    document.getElementById('endurance').textContent = Math.floor(player.stats.endurance);
+    document.getElementById('agility').textContent = Math.floor(player.stats.agility);
+    
+    const levelProgress = document.getElementById('level-progress');
+    const expPercentage = (player.exp / player.maxExp) * 100;
+    levelProgress.style.width = `${expPercentage}%`;
+  }
+  document.getElementById('quest-level').textContent = "Level " + player.level;
 
-.splash-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #007bff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    animation: fadeOut 1.5s ease forwards;
-}
+  // Event Listeners
+  document.getElementById('quest-level').addEventListener('click', openPlayerDetailsModal);
+  document.querySelector('.developer').addEventListener('click', resetLevel);
+  document.getElementById('closePopup').addEventListener('click', () => {
+    document.getElementById('popupModal').style.display = "none";
+  });
+  document.getElementById('closeTerms').addEventListener('click', () => {
+    document.getElementById('termsModal').style.display = "none";
+  });
+  document.getElementById('termsButton').addEventListener('click', () => {
+    document.getElementById('termsModal').style.display = "block";
+  });
+  document.getElementById('resetQuestsButton').addEventListener('click', () => {
+    resetExercises();
+    showNotification("Quests have been reset!");
+  });
 
-.splash-screen h1 {
-    font-size: 2rem;
-    color: #fff;
-    animation: fadeIn 1s ease-in-out;
-}
-
-.splash-screen p {
-    font-size: 1rem;
-    color: #fff;
-}
-
-/* Chat Container */
-.chat-container {
-    width: 100%;
-    max-width: 600px;
-    height: 80vh;
-    background-color: #2c2c2c;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-}
-
-.chat-header {
-    padding: 16px;
-    background-color: #3b3b3b;
-    border-bottom: 1px solid #444;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.toggle-history {
-    cursor: pointer;
-    margin-left: 10px;
-    font-size: 24px;
-    position: relative;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.toggle-history span {
-    position: absolute;
-    width: 20px;
-    height: 2px;
-    background-color: #fff;
-    transition: all 0.3s ease;
-}
-
-.toggle-history span:nth-child(1) {
-    transform: translateY(-6px);
-}
-
-.toggle-history span:nth-child(3) {
-    transform: translateY(6px);
-}
-
-.toggle-history.open span:nth-child(1) {
-    transform: rotate(45deg);
-}
-
-.toggle-history.open span:nth-child(2) {
-    opacity: 0;
-}
-
-.toggle-history.open span:nth-child(3) {
-    transform: rotate(-45deg);
-}
-
-.new-chat-button {
-    cursor: pointer;
-    font-size: 24px;
-    color: #007bff;
-}
-
-/* Chat Box */
-.chat-box {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px;
-    background-color: #2c2c2c;
-    display: flex;
-    flex-direction: column;
-    transition: background-color 0.3s ease;
-}
-
-.input-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    background-color: #3b3b3b;
-    border-top: 1px solid #444;
-}
-
-.message-input-container {
-    display: flex;
-    align-items: center;
-    background-color: #444;
-    border-radius: 20px;
-    padding: 6px;
-    width: calc(100% - 20px);
-    max-width: 600px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-}
-
-.message-input {
-    border: none;
-    outline: none;
-    flex-grow: 1;
-    font-size: 14px;
-    background-color: transparent;
-    color: #e0e0e0;
-    padding: 6px;
-    border-radius: 20px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.send-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #007bff;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    margin-left: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.send-button:hover {
-    background-color: #0056b3;
-}
-
-.send-button svg {
-    fill: #fff;
-    width: 20px;
-    height: 20px;
-}
-
-/* Messages */
-.message {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 20px;
-    max-width: 70%;
-    word-wrap: break-word;
-    display: inline-block;
-    font-size: 14px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.user-message {
-    background-color: #007bff;
-    color: #fff;
-    align-self: flex-end;
-    text-align: right;
-}
-
-.bot-message {
-    background-color: #555;
-    color: #e0e0e0;
-    align-self: flex-start;
-    text-align: left;
-}
-
-/* Sidebar */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    max-width: 300px;
-    height: 100%;
-    background-color: #3b3b3b;
-    transition: left 0.3s ease;
-    z-index: 1000;
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease;
-}
-
-.sidebar.open {
-    left: 0;
-}
-
-.sidebar-header {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.close-sidebar {
-    cursor: pointer;
-    font-size: 20px;
-}
-
-/* Collapsible Sections */
-.collapsible-section {
-    margin-top: 20px;
-    border-top: 1px solid #444;
-    padding-top: 10px;
-}
-
-.collapsible-section-header {
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.collapsible-section-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-}
-
-.collapsible-section-content.open {
-    max-height: 300px;
-    padding: 10px 0;
-}
-
-/* History Section */
-.history-item {
-    margin-bottom: 5px;
-    padding: 8px;
-    background-color: #444;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.history-item:hover {
-    background-color: #555;
-}
-
-/* Terms and Conditions */
-.terms-and-conditions {
-    margin-top: 20px;
-    font-size: 14px;
-    color: #ccc;
-}
-
-.terms-and-conditions h3 {
-    margin-bottom: 10px;
-    color: #fff;
-}
-
-.terms-and-conditions ul {
-    padding-left: 20px;
-}
-
-/* Backdrop Overlay */
-.backdrop {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-}
-
-.backdrop.active {
-    display: block;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; visibility: hidden; }
-}
-
-@media (max-width: 768px) {
-    .chat-container {
-        height: 100vh;
-        border-radius: 0;
+  // Close modals when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target == document.getElementById('popupModal')) {
+      document.getElementById('popupModal').style.display = "none";
     }
+    if (event.target == document.getElementById('termsModal')) {
+      document.getElementById('termsModal').style.display = "none";
+    }
+  });
+};
+
+// Open player details modal
+function openPlayerDetailsModal() {
+  document.getElementById('modal-level').textContent = player.level;
+  document.getElementById('modal-exp').textContent = Math.floor(player.exp);
+  document.getElementById('modal-maxexp').textContent = player.maxExp;
+  document.getElementById('modal-strength').textContent = Math.floor(player.stats.strength);
+  document.getElementById('modal-endurance').textContent = Math.floor(player.stats.endurance);
+  document.getElementById('modal-agility').textContent = Math.floor(player.stats.agility);
+  document.getElementById('popupModal').style.display = "block";
 }
+
+// Save player data to localStorage
+function savePlayerData() {
+  localStorage.setItem('player', JSON.stringify(player));
+}
+
+// Update experience display
+function updateExpDisplay() {
+  document.getElementById('current-exp').textContent = Math.floor(player.exp);
+  document.getElementById('max-exp').textContent = player.maxExp;
+  const levelProgress = document.getElementById('level-progress');
+  const expPercentage = (player.exp / player.maxExp) * 100;
+  levelProgress.style.width = `${expPercentage}%`;
+  levelProgress.classList.add('highlight');
+  setTimeout(() => levelProgress.classList.remove('highlight'), 500);
+}
+
+// Update stat value
+function updateStat(stat, amount) {
+  player.stats[stat] += amount;
+  document.getElementById(stat).textContent = Math.floor(player.stats[stat]);
+  savePlayerData();
+}
+
+// Update exercise progress
+function updateProgress(exercise, amount) {
+  const data = exercises[exercise];
+  const oldValue = data.current;
+  data.current = Math.min(data.current + amount, data.max);
+  const progressBar = document.getElementById(`${exercise}-progress`);
+  const percentage = (data.current / data.max) * 100;
+  progressBar.style.width = `${percentage}%`;
+  
+  const exerciseItem = progressBar.closest('.exercise-item');
+  const span = exerciseItem.querySelector('span');
+  const unit = exercise === 'running' ? 'km' : '';
+  span.textContent = `${exercise.charAt(0).toUpperCase() + exercise.slice(1)} (${data.current}/${data.max}${unit})`;
+  
+  if (data.current === data.max) {
+    span.classList.add('complete');
+    if (!data.counted) {
+      data.counted = true;
+      completedQuestCount++;
+      addBonusExperience(100);
+      updateStat(data.stat, 5);
+      if (completedQuestCount >= 2) {
+        levelUp();
+        completedQuestCount -= 2;
+      }
+    }
+  }
+}
+
+// Level up function
+function levelUp() {
+  player.level++;
+  showNotification(`Level Up! You are now level ${player.level}!`);
+  document.getElementById('quest-level').textContent = "Level " + player.level;
+  document.getElementById('level').textContent = player.level;
+  savePlayerData();
+}
+
+// Reset level
+function resetLevel() {
+  player.level = 1;
+  player.exp = 0;
+  player.stats.strength = 10;
+  player.stats.endurance = 10;
+  player.stats.agility = 10;
+  completedQuestCount = 0;
+  
+  for (let ex in exercises) {
+    exercises[ex].counted = false;
+    exercises[ex].current = 0;
+    const progressBar = document.getElementById(`${ex}-progress`);
+    progressBar.style.width = '0%';
+    const exerciseItem = progressBar.closest('.exercise-item');
+    const span = exerciseItem.querySelector('span');
+    const unit = ex === 'running' ? 'km' : '';
+    span.textContent = `${ex.charAt(0).toUpperCase() + ex.slice(1)} (0/${exercises[ex].max}${unit})`;
+    span.classList.remove('complete');
+  }
+  
+  document.getElementById('quest-level').textContent = "Level " + player.level;
+  document.getElementById('level').textContent = player.level;
+  document.getElementById('current-exp').textContent = 0;
+  document.getElementById('strength').textContent = 10;
+  document.getElementById('endurance').textContent = 10;
+  document.getElementById('agility').textContent = 10;
+  showNotification("Level and stats have been reset!");
+  savePlayerData();
+}
+
+// Show notification
+function showNotification(message) {
+  const notification = document.getElementById('notification');
+  notification.textContent = message;
+  notification.classList.add('show');
+  setTimeout(() => notification.classList.remove('show'), 3000);
+}
+
+// Reset exercises
+function resetExercises() {
+  for (let ex in exercises) {
+    exercises[ex].current = 0;
+    exercises[ex].counted = false;
+    const progressBar = document.getElementById(`${ex}-progress`);
+    progressBar.style.width = '0%';
+    const exerciseItem = progressBar.closest('.exercise-item');
+    const span = exerciseItem.querySelector('span');
+    const unit = ex === 'running' ? 'km' : '';
+    span.textContent = `${ex.charAt(0).toUpperCase() + ex.slice(1)} (0/${exercises[ex].max}${unit})`;
+    span.classList.remove('complete');
+  }
+}
+
+// Timer functionality
+let hours = 23;
+let minutes = 59;
+let seconds = 59;
+
+function updateTimerDisplay() {
+  let h = hours < 10 ? "0" + hours : hours;
+  let m = minutes < 10 ? "0" + minutes : minutes;
+  let s = seconds < 10 ? "0" + seconds : seconds;
+  document.querySelector('.warning').textContent =
+    "System Warning: Quest Time Remaining - " + h + ":" + m + ":" + s;
+}
+
+function startTimer() {
+  setInterval(() => {
+    if (hours === 0 && minutes === 0 && seconds === 0) {
+      resetExercises();
+      hours = 23;
+      minutes = 59;
+      seconds = 59;
+    } else {
+      if (seconds === 0) {
+        if (minutes === 0) {
+          if (hours !== 0) {
+            hours--;
+            minutes = 59;
+            seconds = 59;
+          }
+        } else {
+          minutes--;
+          seconds = 59;
+        }
+      } else {
+        seconds--;
+      }
+    }
+    updateTimerDisplay();
+  }, 1000);
+}
+
+startTimer();
