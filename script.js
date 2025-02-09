@@ -1,219 +1,253 @@
-let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-let responseLogic = localStorage.getItem('responseLogic') || "Hello! I'm your offline assistant. How can I help you?";
-let isLightMode = false;
+// Global variable to track completed quests for level up
+let completedQuestCount = 0;
 
-// Persistent storage for remembered data
-let rememberedData = JSON.parse(localStorage.getItem('rememberedData')) || {};
+// Exercise definitions with "counted" property
+const exercises = {
+  pushups: { current: 0, max: 100, expPerUnit: 10, stat: 'strength', counted: false },
+  situps: { current: 0, max: 100, expPerUnit: 10, stat: 'endurance', counted: false },
+  squats: { current: 0, max: 100, expPerUnit: 10, stat: 'strength', counted: false },
+  running: { current: 0, max: 10, expPerUnit: 100, stat: 'agility', counted: false }
+};
 
-// Track the current chat session
-let currentChatSession = [];
-let chatSessions = JSON.parse(localStorage.getItem('chatSessions')) || [];
+// Player data
+const player = {
+  level: 1,
+  exp: 0,
+  maxExp: 1000,
+  skillPoints: 0,
+  stats: {
+    strength: 10,
+    endurance: 10,
+    agility: 10
+  },
+  buffs: []
+};
 
-// Initialize chat history and response logic
-document.getElementById('response-editor').value = responseLogic;
-updateHistoryList();
+// Function to add bonus experience
+function addBonusExperience(bonusExp) {
+  player.exp += bonusExp;
+  updateExpDisplay();
+  savePlayerData();
+}
 
-// Function to toggle sidebar
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const toggleIcon = document.getElementById('toggle-history');
-    const backdrop = document.getElementById('backdrop');
-    if (sidebar.classList.contains('open')) {
-        sidebar.classList.remove('open');
-        toggleIcon.classList.remove('open');
-        backdrop.classList.remove('active');
-        document.body.style.overflow = 'auto';
+// Initialize on window load
+window.onload = function() {
+  const savedPlayer = localStorage.getItem('player');
+  if (savedPlayer) {
+    const saved = JSON.parse(savedPlayer);
+    player.level = saved.level || player.level;
+    player.exp = saved.exp || player.exp;
+    player.maxExp = saved.maxExp || player.maxExp;
+    player.skillPoints = saved.skillPoints || player.skillPoints;
+    player.stats = saved.stats || player.stats;
+    player.buffs = saved.buffs || player.buffs;
+    
+    // Update UI with saved data
+    document.getElementById('level').textContent = player.level;
+    document.getElementById('current-exp').textContent = Math.floor(player.exp);
+    document.getElementById('max-exp').textContent = player.maxExp;
+    document.getElementById('strength').textContent = Math.floor(player.stats.strength);
+    document.getElementById('endurance').textContent = Math.floor(player.stats.endurance);
+    document.getElementById('agility').textContent = Math.floor(player.stats.agility);
+    
+    const levelProgress = document.getElementById('level-progress');
+    const expPercentage = (player.exp / player.maxExp) * 100;
+    levelProgress.style.width = `${expPercentage}%`;
+  }
+  document.getElementById('quest-level').textContent = "Level " + player.level;
+
+  // Event Listeners
+  document.getElementById('quest-level').addEventListener('click', openPlayerDetailsModal);
+  document.querySelector('.developer').addEventListener('click', resetLevel);
+  document.getElementById('closePopup').addEventListener('click', () => {
+    document.getElementById('popupModal').style.display = "none";
+  });
+  document.getElementById('closeTerms').addEventListener('click', () => {
+    document.getElementById('termsModal').style.display = "none";
+  });
+  document.getElementById('termsButton').addEventListener('click', () => {
+    document.getElementById('termsModal').style.display = "block";
+  });
+  document.getElementById('resetQuestsButton').addEventListener('click', () => {
+    resetExercises();
+    showNotification("Quests have been reset!");
+  });
+
+  // Close modals when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target == document.getElementById('popupModal')) {
+      document.getElementById('popupModal').style.display = "none";
+    }
+    if (event.target == document.getElementById('termsModal')) {
+      document.getElementById('termsModal').style.display = "none";
+    }
+  });
+};
+
+// Open player details modal
+function openPlayerDetailsModal() {
+  document.getElementById('modal-level').textContent = player.level;
+  document.getElementById('modal-exp').textContent = Math.floor(player.exp);
+  document.getElementById('modal-maxexp').textContent = player.maxExp;
+  document.getElementById('modal-strength').textContent = Math.floor(player.stats.strength);
+  document.getElementById('modal-endurance').textContent = Math.floor(player.stats.endurance);
+  document.getElementById('modal-agility').textContent = Math.floor(player.stats.agility);
+  document.getElementById('popupModal').style.display = "block";
+}
+
+// Save player data to localStorage
+function savePlayerData() {
+  localStorage.setItem('player', JSON.stringify(player));
+}
+
+// Update experience display
+function updateExpDisplay() {
+  document.getElementById('current-exp').textContent = Math.floor(player.exp);
+  document.getElementById('max-exp').textContent = player.maxExp;
+  const levelProgress = document.getElementById('level-progress');
+  const expPercentage = (player.exp / player.maxExp) * 100;
+  levelProgress.style.width = `${expPercentage}%`;
+  levelProgress.classList.add('highlight');
+  setTimeout(() => levelProgress.classList.remove('highlight'), 500);
+}
+
+// Update stat value
+function updateStat(stat, amount) {
+  player.stats[stat] += amount;
+  document.getElementById(stat).textContent = Math.floor(player.stats[stat]);
+  savePlayerData();
+}
+
+// Update exercise progress
+function updateProgress(exercise, amount) {
+  const data = exercises[exercise];
+  const oldValue = data.current;
+  data.current = Math.min(data.current + amount, data.max);
+  const progressBar = document.getElementById(`${exercise}-progress`);
+  const percentage = (data.current / data.max) * 100;
+  progressBar.style.width = `${percentage}%`;
+  
+  const exerciseItem = progressBar.closest('.exercise-item');
+  const span = exerciseItem.querySelector('span');
+  const unit = exercise === 'running' ? 'km' : '';
+  span.textContent = `${exercise.charAt(0).toUpperCase() + exercise.slice(1)} (${data.current}/${data.max}${unit})`;
+  
+  if (data.current === data.max) {
+    span.classList.add('complete');
+    if (!data.counted) {
+      data.counted = true;
+      completedQuestCount++;
+      addBonusExperience(100);
+      updateStat(data.stat, 5);
+      if (completedQuestCount >= 2) {
+        levelUp();
+        completedQuestCount -= 2;
+      }
+    }
+  }
+}
+
+// Level up function
+function levelUp() {
+  player.level++;
+  showNotification(`Level Up! You are now level ${player.level}!`);
+  document.getElementById('quest-level').textContent = "Level " + player.level;
+  document.getElementById('level').textContent = player.level;
+  savePlayerData();
+}
+
+// Reset level
+function resetLevel() {
+  player.level = 1;
+  player.exp = 0;
+  player.stats.strength = 10;
+  player.stats.endurance = 10;
+  player.stats.agility = 10;
+  completedQuestCount = 0;
+  
+  for (let ex in exercises) {
+    exercises[ex].counted = false;
+    exercises[ex].current = 0;
+    const progressBar = document.getElementById(`${ex}-progress`);
+    progressBar.style.width = '0%';
+    const exerciseItem = progressBar.closest('.exercise-item');
+    const span = exerciseItem.querySelector('span');
+    const unit = ex === 'running' ? 'km' : '';
+    span.textContent = `${ex.charAt(0).toUpperCase() + ex.slice(1)} (0/${exercises[ex].max}${unit})`;
+    span.classList.remove('complete');
+  }
+  
+  document.getElementById('quest-level').textContent = "Level " + player.level;
+  document.getElementById('level').textContent = player.level;
+  document.getElementById('current-exp').textContent = 0;
+  document.getElementById('strength').textContent = 10;
+  document.getElementById('endurance').textContent = 10;
+  document.getElementById('agility').textContent = 10;
+  showNotification("Level and stats have been reset!");
+  savePlayerData();
+}
+
+// Show notification
+function showNotification(message) {
+  const notification = document.getElementById('notification');
+  notification.textContent = message;
+  notification.classList.add('show');
+  setTimeout(() => notification.classList.remove('show'), 3000);
+}
+
+// Reset exercises
+function resetExercises() {
+  for (let ex in exercises) {
+    exercises[ex].current = 0;
+    exercises[ex].counted = false;
+    const progressBar = document.getElementById(`${ex}-progress`);
+    progressBar.style.width = '0%';
+    const exerciseItem = progressBar.closest('.exercise-item');
+    const span = exerciseItem.querySelector('span');
+    const unit = ex === 'running' ? 'km' : '';
+    span.textContent = `${ex.charAt(0).toUpperCase() + ex.slice(1)} (0/${exercises[ex].max}${unit})`;
+    span.classList.remove('complete');
+  }
+}
+
+// Timer functionality
+let hours = 23;
+let minutes = 59;
+let seconds = 59;
+
+function updateTimerDisplay() {
+  let h = hours < 10 ? "0" + hours : hours;
+  let m = minutes < 10 ? "0" + minutes : minutes;
+  let s = seconds < 10 ? "0" + seconds : seconds;
+  document.querySelector('.warning').textContent =
+    "System Warning: Quest Time Remaining - " + h + ":" + m + ":" + s;
+}
+
+function startTimer() {
+  setInterval(() => {
+    if (hours === 0 && minutes === 0 && seconds === 0) {
+      resetExercises();
+      hours = 23;
+      minutes = 59;
+      seconds = 59;
     } else {
-        sidebar.classList.add('open');
-        toggleIcon.classList.add('open');
-        backdrop.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-// Close sidebar when clicking outside of it
-document.getElementById('backdrop').addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar');
-    const toggleIcon = document.getElementById('toggle-history');
-    const backdrop = document.getElementById('backdrop');
-    sidebar.classList.remove('open');
-    toggleIcon.classList.remove('open');
-    backdrop.classList.remove('active');
-    document.body.style.overflow = 'auto';
-});
-
-// Function to toggle collapsible sections
-function toggleSection(sectionId) {
-    const content = document.getElementById(`${sectionId}-content`);
-    const arrow = document.getElementById(`${sectionId}-arrow`);
-    content.classList.toggle('open');
-    arrow.innerText = content.classList.contains('open') ? '▲' : '▼';
-}
-
-// Function to send message
-function sendMessage() {
-    const userInput = document.getElementById('user-input').value.trim();
-    if (!userInput) return;
-
-    appendMessage('user', userInput);
-    currentChatSession.push({ sender: 'user', message: userInput });
-
-    // Generate bot response based on logic
-    const botResponse = generateBotResponse(userInput);
-    appendMessage('bot', botResponse);
-    currentChatSession.push({ sender: 'bot', message: botResponse });
-
-    saveCurrentChatSession();
-    document.getElementById('user-input').value = '';
-}
-
-// Function to generate bot response
-function generateBotResponse(input) {
-    input = input.toLowerCase();
-
-    // Handle greetings
-    if (input.includes('hi') || input.includes('hello')) {
-        return responseLogic;
-    } else if (input.includes('how are you')) {
-        return "I'm just a program, but thanks for asking!";
-    } else if (input.includes('bye')) {
-        return "Goodbye! Have a great day!";
-    }
-
-    // Handle remembering data
-    if (input.includes('remember') || input.includes('save')) {
-        const match = input.match(/(?:remember|save)\s+(.+)$/i); // Extract text after "remember" or "save"
-        if (match) {
-            const keyMatch = input.match(/(?:about|for|this)\s+(\w+)/i); // Extract key (e.g., "pancard," "phone")
-            const key = keyMatch ? keyMatch[1].toLowerCase() : "general";
-            const value = match[1].trim();
-
-            rememberedData[key] = value;
-            localStorage.setItem('rememberedData', JSON.stringify(rememberedData));
-            return `Got it! I've saved "${value}" under "${key}".`;
+      if (seconds === 0) {
+        if (minutes === 0) {
+          if (hours !== 0) {
+            hours--;
+            minutes = 59;
+            seconds = 59;
+          }
+        } else {
+          minutes--;
+          seconds = 59;
         }
-        return "Sorry, I couldn't understand what to remember. Please try again.";
+      } else {
+        seconds--;
+      }
     }
-
-    // Handle retrieving remembered data
-    if (input.includes('what did i say') || input.includes('what did i tell you') || input.includes('what did i save')) {
-        const keyMatch = input.match(/(?:about|for|this)\s+(\w+)/i); // Extract key (e.g., "pancard," "phone")
-        const key = keyMatch ? keyMatch[1].toLowerCase() : "general";
-
-        const value = rememberedData[key];
-        if (value) {
-            return `You told me to remember "${value}" for "${key}".`;
-        }
-        return `I don't have anything saved for "${key}".`;
-    }
-
-    return "I'm not sure how to respond to that.";
+    updateTimerDisplay();
+  }, 1000);
 }
 
-// Function to append message to chat box
-function appendMessage(sender, message) {
-    const chatBox = document.getElementById('chat-box');
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
-    messageElement.innerText = message;
-    chatBox.appendChild(messageElement);
-    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-}
-
-// Function to update chat history list
-function updateHistoryList() {
-    const historyList = document.getElementById('history-list');
-    historyList.innerHTML = '';
-    chatSessions.forEach((session, index) => {
-        const historyItem = document.createElement('div');
-        historyItem.classList.add('history-item');
-        historyItem.innerText = `Chat ${index + 1}`;
-        historyItem.onclick = () => loadChatSession(index);
-        historyList.appendChild(historyItem);
-    });
-}
-
-// Function to save the current chat session
-function saveCurrentChatSession() {
-    chatSessions.push(currentChatSession);
-    localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
-    updateHistoryList();
-}
-
-// Function to start a new chat session
-function startNewChat() {
-    if (currentChatSession.length > 0) {
-        saveCurrentChatSession();
-        currentChatSession = [];
-        document.getElementById('chat-box').innerHTML = ''; // Clear the chat box
-        alert("New chat started. Previous chat saved as Chat " + chatSessions.length);
-    } else {
-        alert("No active chat to save. Starting a new chat.");
-    }
-}
-
-// Function to load a chat session from history
-function loadChatSession(index) {
-    currentChatSession = chatSessions[index];
-    const chatBox = document.getElementById('chat-box');
-    chatBox.innerHTML = ''; // Clear the chat box
-    currentChatSession.forEach(item => {
-        appendMessage(item.sender, item.message);
-    });
-}
-
-// Function to clear chat history and remembered data
-function clearHistory() {
-    if (confirm("Are you sure you want to clear all chat history and remembered data?")) {
-        chatSessions = [];
-        currentChatSession = [];
-        rememberedData = {};
-        localStorage.removeItem('chatSessions');
-        localStorage.removeItem('rememberedData');
-        document.getElementById('chat-box').innerHTML = ''; // Clear the chat box
-        updateHistoryList();
-        alert("Chat history and remembered data cleared successfully!");
-    }
-}
-
-// Function to save response logic
-function saveResponseLogic() {
-    const newLogic = document.getElementById('response-editor').value.trim();
-    if (newLogic) {
-        responseLogic = newLogic;
-        localStorage.setItem('responseLogic', responseLogic);
-        alert("Response logic saved successfully!");
-    } else {
-        alert("Response logic cannot be empty!");
-    }
-}
-
-// Swipe Gesture Detection
-let startX = 0;
-let isSwiping = false;
-
-document.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-    isSwiping = true;
-});
-
-document.addEventListener('touchmove', (e) => {
-    if (!isSwiping) return;
-    const currentX = e.touches[0].clientX;
-    const deltaX = startX - currentX;
-
-    // Detect swipe direction
-    if (deltaX > 50 && document.getElementById('sidebar').classList.contains('open')) {
-        // Swipe left to close sidebar
-        toggleSidebar();
-        isSwiping = false;
-    } else if (deltaX < -50 && !document.getElementById('sidebar').classList.contains('open')) {
-        // Swipe right to open sidebar
-        toggleSidebar();
-        isSwiping = false;
-    }
-});
-
-document.addEventListener('touchend', () => {
-    isSwiping = false;
-});
+startTimer();
