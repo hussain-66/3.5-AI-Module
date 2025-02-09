@@ -1,99 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X Chat</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Quest System</title>
+  <link href="styles.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Splash Screen -->
-    <div class="splash-screen">
-        <h1>X Chat</h1>
-        <p>Developer: Hussain</p>
+  <div class="game-container">
+    <div class="quest-container">
+      <div class="title">
+        Daily Quest: Strength Training
+      </div>
+      <span id="quest-level" class="quest-level">Level 0</span>
+      
+      <ul class="exercise-list">
+        <li class="exercise-item">
+          <span>Push-ups (0/100)</span>
+          <div class="exercise-controls">
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" id="pushups-progress"></div>
+              </div>
+            </div>
+            <div class="exercise-buttons">
+              <button onclick="updateProgress('pushups', 1)">+1</button>
+              <button onclick="updateProgress('pushups', 10)">+10</button>
+            </div>
+          </div>
+        </li>
+        <li class="exercise-item">
+          <span>Sit-ups (0/100)</span>
+          <div class="exercise-controls">
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" id="situps-progress"></div>
+              </div>
+            </div>
+            <div class="exercise-buttons">
+              <button onclick="updateProgress('situps', 1)">+1</button>
+              <button onclick="updateProgress('situps', 10)">+10</button>
+            </div>
+          </div>
+        </li>
+        <li class="exercise-item">
+          <span>Squats (0/100)</span>
+          <div class="exercise-controls">
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" id="squats-progress"></div>
+              </div>
+            </div>
+            <div class="exercise-buttons">
+              <button onclick="updateProgress('squats', 1)">+1</button>
+              <button onclick="updateProgress('squats', 10)">+10</button>
+            </div>
+          </div>
+        </li>
+        <li class="exercise-item">
+          <span>Running (0/10km)</span>
+          <div class="exercise-controls">
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" id="running-progress"></div>
+              </div>
+            </div>
+            <div class="exercise-buttons">
+              <button onclick="updateProgress('running', 0.5)">+0.5km</button>
+              <button onclick="updateProgress('running', 1)">+1km</button>
+            </div>
+          </div>
+        </li>
+      </ul>
+      
+      <div class="warning">System Warning: Quest Time Remaining - 23:59:59</div>
+      <div class="developer">Developer: Hussain</div>
     </div>
 
-    <div class="backdrop" id="backdrop"></div>
-
-    <div class="chat-container" id="chat-container">
-        <div class="chat-header">
-            <div class="toggle-history" id="toggle-history" onclick="toggleSidebar()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <div class="new-chat-button" onclick="startNewChat()">🌀</div>
+    <div class="status-container" id="status-container">
+      <div class="title">Hunter Status</div>
+      <div class="status-info">
+        <div class="status-label">Level</div>
+        <div class="status-value" id="level">1</div>
+        <div class="level-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" id="level-progress"></div>
+          </div>
+          <div class="status-value">EXP: <span id="current-exp">0</span>/<span id="max-exp">1000</span></div>
         </div>
-
-        <div class="chat-box" id="chat-box">
-            <!-- Chat messages will appear here -->
-        </div>
-
-        <div class="input-container" id="input-container">
-            <div class="message-input-container">
-                <input type="text" class="message-input" id="user-input" placeholder="Type your message..." onkeydown="if(event.key === 'Enter') sendMessage()">
-                <div class="send-button" onclick="sendMessage()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 19V6m0 0l-7 7m7-7l7 7" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </div>
-            </div>
-        </div>
+      </div>
+      <div class="status-info">
+        <div class="status-label">Stats</div>
+        <div class="status-value">Strength: <span id="strength">10</span></div>
+        <div class="status-value">Endurance: <span id="endurance">10</span></div>
+        <div class="status-value">Agility: <span id="agility">10</span></div>
+      </div>
+      <div class="status-info">
+        <div class="status-label">Active Buffs</div>
+        <div class="buff-list" id="buff-list"></div>
+      </div>
     </div>
+  </div>
 
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            Menu
-            <span class="close-sidebar" onclick="toggleSidebar()">×</span>
-        </div>
-
-        <!-- Settings Section -->
-        <div class="collapsible-section">
-            <div class="collapsible-section-header" onclick="toggleSection('settings')">
-                Settings
-                <span id="settings-arrow">▼</span>
-            </div>
-            <div class="collapsible-section-content" id="settings-content">
-                <textarea id="response-editor" placeholder="Edit bot response logic here..."></textarea>
-                <button class="save-response-btn" onclick="saveResponseLogic()">Save Response</button>
-                <div style="margin-top: 20px;">
-                    <button onclick="exportChatHistory()">Export Chat History</button>
-                    <button onclick="importChatHistory()">Import Chat History</button>
-                </div>
-                <div style="margin-top: 20px;">
-                    <button onclick="toggleTheme()">Toggle Theme</button>
-                </div>
-                <div style="margin-top: 20px;">
-                    <button onclick="clearHistory()">Clear History</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- History Section -->
-        <div class="collapsible-section">
-            <div class="collapsible-section-header" onclick="toggleSection('history')">
-                History
-                <span id="history-arrow">▼</span>
-            </div>
-            <div class="collapsible-section-content" id="history-content">
-                <div id="history-list">
-                    <!-- Chat history will be displayed here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Terms and Conditions -->
-        <div class="terms-and-conditions">
-            <h3>Terms and Conditions</h3>
-            <p>Welcome to X Chat! By using this application, you agree to the following terms:</p>
-            <ul>
-                <li>This is an offline chat application for personal use.</li>
-                <li>No data is stored or transmitted outside your device.</li>
-                <li>The developer is not responsible for any misuse of the application.</li>
-            </ul>
-            <p>Developer: Hussain</p>
-        </div>
+  <div id="popupModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closePopup">&times;</span>
+      <h2>Player Details</h2>
+      <p>Level: <span id="modal-level"></span></p>
+      <p>Experience: <span id="modal-exp"></span> / <span id="modal-maxexp"></span></p>
+      <p>Strength: <span id="modal-strength"></span></p>
+      <p>Endurance: <span id="modal-endurance"></span></p>
+      <p>Agility: <span id="modal-agility"></span></p>
+      <button id="termsButton">Terms and Conditions</button>
+      <button id="resetQuestsButton">Reset Quests</button>
     </div>
+  </div>
 
-    <script src="script.js"></script>
+  <div id="termsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeTerms">&times;</span>
+      <h2>Terms and Conditions</h2>
+      <p>
+    
+
+By accessing or using the Daily Quest System ("the System"), you expressly agree to abide by the following terms and conditions in their entirety. All content, including but not limited to code, design, text, graphics, functionality, and intellectual property embedded within the System, is exclusively owned and copyrighted by Hussain. Unauthorized reproduction, distribution, modification, or commercial exploitation of any component of the System is strictly prohibited under national and international copyright laws. The System is intended solely for personal, non-commercial use, and any attempt to reverse engineer, decompile, or extract source code for unauthorized purposes—including hacking, data mining, or creating derivative works—is expressly forbidden. Users are strictly prohibited from engaging in illegal activities, circumventing security protocols, or misusing the System in ways that violate applicable laws or third-party rights.  
+
+The developer, Hussain, disclaims all liability for direct, indirect, incidental, or consequential damages—including data loss, financial losses, or operational disruptions—arising from the use or inability to use the System. The System is provided "as is" without warranties of any kind, whether express or implied, including merchantability, fitness for a particular purpose, or non-infringement. The developer reserves the right to modify, suspend, or terminate access to the System, as well as update these terms at any time without prior notice; continued use constitutes acceptance of revised terms.  
+
+All disputes related to the System shall be governed by the laws of the jurisdiction in which the developer resides, with exclusive jurisdiction granted to its courts. For inquiries related to partnerships, copyright permissions, or grievances, contact **Hussain** via email at [mrhusayninsta@gmail.com](mailto:mrhusayninsta@gmail.com) or by phone at **+91 95251 00671**. By using the System, you irrevocably acknowledge that you have read, understood, and agreed to these binding terms.  
+
+**Effective Date:** February 9, 2025 | **Last Updated:** February 9, 2025
+      </p>
+    </div>
+  </div>
+
+  <div class="notification" id="notification"></div>
+
+  <script src="script.js"></script>
 </body>
-</html>
+    </html>
